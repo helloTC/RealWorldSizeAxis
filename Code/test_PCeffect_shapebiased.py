@@ -16,19 +16,19 @@ from sklearn.decomposition import PCA
 cnn_model = models.alexnet(pretrained=False)
 cnn_model.features = torch.nn.DataParallel(cnn_model.features)
 cnn_model.cuda()
-checkpoint = torch.load('/nfs/a1/userhome/huangtaicheng/workingdir/models/DNNmodel_param/alexnet_shapebiased.pth.tar')
+checkpoint = torch.load('/home/user/working_dir/liulab_server_bnuold/models/DNNmodel_param/alexnet_shapebiased.pth.tar')
 cnn_model.load_state_dict(checkpoint["state_dict"])
 
-sizerank_pd = pd.read_csv('/nfs/a1/userhome/huangtaicheng/workingdir/data/PhysicalSize/Real_SizeRanks8.csv')
+sizerank_pd = pd.read_csv('/home/user/working_dir/liulab_server_bnuold/data/PhysicalSize/Real_SizeRanks8.csv')
 sizerank_pd = sizerank_pd.sort_values('name')
 ranklabel = sizerank_pd['real_sizerank'].unique()
 ranklabel.sort()
 
-imgnames, actval = cnntools.extract_activation(cnn_model, '/nfs/a1/userhome/huangtaicheng/workingdir/data/PhysicalSize/ObjectSize/SizeDataset_2021/Object100_origin', layer_loc=('features', 'module', '6'), isgpu=True)
+imgnames, actval = cnntools.extract_activation(cnn_model, '/home/user/working_dir/liulab_server_bnuold/data/PhysicalSize/ObjectSize/SizeDataset_2021/Object100_origin', layer_loc=('features', 'module', '8'), batch_size=1, isgpu=True, keeporig=True)
 actval = actval.reshape(*actval.shape[:2], -1).mean(axis=-1)
 actval = actval/np.tile(np.linalg.norm(actval,axis=-1), (actval.shape[-1],1)).T
 
-iopkl = iofiles.make_ioinstance('/nfs/a1/userhome/huangtaicheng/workingdir/models/pca_imgnetval_conv3_alexnetshape.pkl')
+iopkl = iofiles.make_ioinstance('/home/user/working_dir/liulab_server_bnuold/models/pca_imgnetval_conv4_alexnetshape.pkl')
 pcamodel = iopkl.load()
 
 pcacomp = np.dot(actval, np.linalg.inv(pcamodel.components_))
@@ -59,7 +59,7 @@ for i in range(50):
     r_realsize_delpc.append(stats.pearsonr(r_obj_delpc[np.triu_indices(8,1)], real_temp[np.triu_indices(8,1)])[0])
 r_realsize_delpc = np.array(r_realsize_delpc)
 r_obj_delpc_all = np.array(r_obj_delpc_all)
-DI = 1-(r_realsize_delpc/r_realsize_baseline)
+DI = np.arctanh(r_realsize_baseline) - np.arctanh(r_realsize_delpc)
 
 
 
